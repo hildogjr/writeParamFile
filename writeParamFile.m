@@ -15,9 +15,8 @@
 % The decriptions are add as a general header group. To add a comment by
 % line usethe bellow examples. The first input (file name) may or may not
 % be used.
-% writeParamFile '\\ Description.'
-% writeParamFile var1 '\\ Description of this variable.'
-% ...
+% writeParamFile '\\ Group description.' var1 var2 ...
+% writeParamFile var1 '\\ Description of this variable.' var2 '\\ ...' ...
 %
 %  Written by Hildo Guillardi Júnior
 %  Written in Matlab R2017a (needs > R2016 to run) on 6/Apr/2020.
@@ -53,27 +52,31 @@ function writeParamFile(varargin)
     end
     
     
-    
-    % Termination needed in some languages
     switch fileType
-        case {'.h', '.c', '.cpp', '.hpp'}
+        case {'.h', '.hpp'}
+            starter = '#define '; % Written before each variable definition.
+            definition_value = ' '; % Separator between definition name and variable value.
+            termination = ''; % Termination needed in some languages.
+            vector_starter = '{';  % Vector and list identifiers in some languages.
+            vector_termination = '}';
+        case {'.c', '.cpp'}
+            starter = '';
+            definition_value = ' = ';
             termination = ';';
+            vector_starter = '{';
+            vector_termination = '}';
         case '.py'
+            starter = '';
+            definition_value = ' = ';
             termination = '';
+            vector_starter = '[';
+            vector_termination = ']';
         otherwise
+            starter = '';
+            definition_value = ' = ';
             termination = '';
-    end
-    % Vector and list identifiers in some languages
-    switch fileType
-        case {'.h', '.c', '.cpp', '.hpp'}
-            start_vector = '{';
-            end_vector = '}';
-        case '.py'
-            start_vector = '[';
-            end_vector = ']';
-        otherwise
-            start_vector = '{';
-            end_vector = '}';
+            vector_starter = '{';
+            vector_termination = '}';
     end
     
     % Iterate in all varaibles and comments to save line-by-line.
@@ -88,31 +91,29 @@ function writeParamFile(varargin)
                 
                 % Variable type identifiers in some languages
                 switch fileType
-                    case {'.h', '.c', '.cpp', '.hpp'}
+                    case {'.c', '.cpp'}
                         if islogical(value)
                             var_identifier = 'const bool ';
                         elseif mod(value, 1)==0
-                            var_identifier = 'int ';
                             if all(value>=0)
-                                var_identifier = ['unsigned ', var_identifier];
+                                var_identifier = 'const unsigned int ';
+                            else
+                                var_identifier = 'const int ';
                             end
-                            var_identifier = ['const ', var_identifier];
                         else
                             var_identifier = 'const float ';
                         end
-                    case '.py'
-                        var_identifier = '';
-                    otherwise
+                    otherwise%{'.py', '.h', '.hpp'}
                         var_identifier = '';
                 end
-                fprintf(fileID, '%s%s = ', var_identifier, varName);
+                fprintf(fileID, '%s%s%s%s', starter, var_identifier, varName, definition_value);
                 
                 % Unique value or vector logic to write.
                 if all(size(value)==[1,1])
                     writeCurrentParameter(value)
                 else
                     
-                    fprintf(fileID, start_vector);
+                    fprintf(fileID, vector_starter);
                     [num_row, num_col] = size(value);
                     for count_row = 1:num_row
                         if count_row>1
@@ -128,7 +129,7 @@ function writeParamFile(varargin)
                             fprintf(fileID, '\n');
                         end
                     end
-                    fprintf(fileID, end_vector);
+                    fprintf(fileID, vector_termination);
                 end
                 
                 fprintf(fileID, termination);
